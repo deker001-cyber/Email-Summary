@@ -1,0 +1,1978 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Detection Data Monitor — G2touch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #e8ece8;
+      --bg-deep: #d5ddd6;
+      --surface: #f7f9f7;
+      --surface-2: #eef2ee;
+      --ink: #1a2420;
+      --muted: #5a6b62;
+      --border: #c5d0c8;
+      --grid: #d0dad2;
+      --accent: #0b6e4f;
+      --accent-hover: #095c42;
+      --od: #c62828;
+      --danger: #a33b2b;
+      --live: #1a8a6a;
+      --font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+      --font-mono: 'IBM Plex Mono', Consolas, monospace;
+      --shadow: 0 12px 40px rgba(26, 36, 32, 0.12);
+      --radius: 10px;
+      --user1: #1E88E5;
+      --user2: #E53935;
+      --ud1: #1E88E5;
+      --ud2: #E53935;
+      --udU: #7A8B7D;
+      --od1: #1E88E5;
+      --od2: #E53935;
+      --ui-scale: 1;
+      --sidebar-default: clamp(260px, 28vw, 520px);
+      --pad: calc(1.1rem * var(--ui-scale));
+      --gap: calc(0.9rem * var(--ui-scale));
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html {
+      height: 100%;
+      margin: 0;
+      font-size: clamp(12px, 0.55vw + 10px, 17px);
+    }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(11, 110, 79, 0.08), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(196, 92, 38, 0.06), transparent 50%),
+        linear-gradient(160deg, var(--bg), var(--bg-deep));
+      -webkit-font-smoothing: antialiased;
+    }
+    button, select, input { font: inherit; color: inherit; }
+    .app {
+      display: grid;
+      grid-template-columns: var(--sidebar-w, var(--sidebar-default)) 6px 1fr;
+      height: 100%;
+      min-height: 0;
+    }
+    .sidebar {
+      display: flex; flex-direction: column; gap: calc(0.85rem * var(--ui-scale));
+      padding: var(--pad) calc(1rem * var(--ui-scale));
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      border-right: none;
+      backdrop-filter: blur(8px);
+      overflow-y: auto;
+      min-width: 0;
+    }
+    .sidebar-splitter {
+      cursor: col-resize;
+      background: var(--border);
+      position: relative;
+      z-index: 5;
+      touch-action: none;
+    }
+    .sidebar-splitter::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: -3px; right: -3px;
+    }
+    .sidebar-splitter:hover,
+    .sidebar-splitter.active {
+      background: color-mix(in srgb, var(--accent) 55%, var(--border));
+    }
+    body.resizing-sidebar {
+      cursor: col-resize;
+      user-select: none;
+    }
+    .brand { display: block; font-size: calc(0.95rem * var(--ui-scale)); font-weight: 700; letter-spacing: 0.04em; color: var(--accent); text-transform: uppercase; }
+    .brand-block h1 { margin: 0.2rem 0 0.45rem; font-size: calc(1.2rem * var(--ui-scale)); font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
+    .brand-block { padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+    .sim-badge {
+      display: inline-block; margin: 0; padding: 0.15rem 0.45rem;
+      font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--od); background: color-mix(in srgb, var(--od) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--od) 35%, transparent); border-radius: 4px;
+    }
+    .sim-badge.hid {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    }
+    .btn-row { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.65rem; }
+    .btn.block { width: 100%; }
+    .side-section h3 {
+      margin: 0 0 0.5rem; font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    }
+    .filter-note { margin: 0 0 0.6rem; font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
+    .device-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .device-item {
+      display: flex; gap: 0.65rem; width: 100%; text-align: left;
+      padding: 0.65rem 0.7rem; background: var(--surface-2);
+      border: 1px solid transparent; border-radius: 8px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .device-item:hover { border-color: var(--border); }
+    .device-item.active {
+      background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+    }
+    .dot { flex-shrink: 0; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #9aa89f; }
+    .dot.on { background: var(--live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 25%, transparent); }
+    .device-meta { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+    .device-name { font-size: 0.8rem; font-weight: 500; line-height: 1.3; word-break: break-word; }
+    .device-ids { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); }
+    .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.65rem; font-size: 0.8rem; color: var(--muted); }
+    .field select { padding: 0.45rem 0.55rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+    .log-section {
+      flex: 1;
+      min-height: clamp(120px, 18vh, 280px);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .log-section h3 { flex-shrink: 0; }
+    .log-view {
+      flex: 1;
+      min-height: clamp(100px, 14vh, 220px);
+      overflow: auto;
+      padding: 0.5rem 0.55rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .log-view:empty::before {
+      content: 'Waiting for Log…';
+      color: var(--muted);
+    }
+    .log-line { margin: 0 0 0.35rem; white-space: pre-wrap; }
+    .log-line:last-child { margin-bottom: 0; }
+    .reg-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 0.45rem;
+      align-items: end;
+    }
+    .reg-row .field { margin-bottom: 0; }
+    .reg-btns {
+      display: flex;
+      gap: 0.35rem;
+      padding-bottom: 0;
+    }
+    .reg-btns .btn {
+      min-width: 2.4rem;
+      padding-left: 0.55rem;
+      padding-right: 0.55rem;
+      font-weight: 700;
+    }
+    .field input[type="text"] {
+      padding: 0.45rem 0.55rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--ink);
+      width: 100%;
+      text-align: center;
+    }
+    .btn {
+      padding: 0.5rem 0.85rem; border-radius: 7px; border: 1px solid var(--border);
+      background: var(--surface); cursor: pointer; font-weight: 500;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn.block { width: 100%; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #f4faf7; }
+    .btn.primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn.primary.stop { background: var(--danger); border-color: var(--danger); }
+    .btn.ghost { background: transparent; }
+    .btn.ghost:hover { background: var(--surface-2); }
+    .stat { margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+    .check-row { display: flex; align-items: center; gap: 0.55rem; font-size: 0.88rem; cursor: pointer; user-select: none; }
+    .check-row input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+    .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: var(--pad); }
+    .main-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: calc(0.85rem * var(--ui-scale)); }
+    .eyebrow { margin: 0; font-size: calc(0.7rem * var(--ui-scale)); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .main-toolbar h2 { margin: 0.25rem 0 0; font-size: calc(1.05rem * var(--ui-scale)); font-weight: 550; max-width: 42rem; line-height: 1.35; }
+    .status-pill {
+      flex-shrink: 0; padding: 0.35rem 0.75rem; font-family: var(--font-mono);
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    }
+    .status-pill.live {
+      color: var(--accent);
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+      background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+      animation: pulse-soft 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.72; } }
+    .graphs { display: grid; grid-template-rows: 1fr 1fr; gap: var(--gap); flex: 1; min-height: 0; }
+    .graph-panel {
+      display: flex; flex-direction: column; min-height: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+      animation: rise-in 0.45s ease-out both;
+    }
+    .graph-panel:nth-child(2) { animation-delay: 0.08s; }
+    @keyframes rise-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .graph-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 0.65rem 0.95rem 0.5rem; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .live-size {
+      display: flex;
+      gap: 0.65rem;
+      align-items: stretch;
+    }
+    .live-size-item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 7.5rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--user1) 40%, var(--border));
+      background: color-mix(in srgb, var(--user1) 10%, var(--surface));
+    }
+    .live-size-item .lbl {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .live-size-item .val {
+      font-family: var(--font-mono);
+      font-size: calc(1.25rem * var(--ui-scale));
+      font-weight: 600;
+      line-height: 1.15;
+      color: var(--user1);
+      font-variant-numeric: tabular-nums;
+    }
+    .live-size-item.u2 {
+      border-color: color-mix(in srgb, var(--user2) 40%, var(--border));
+      background: color-mix(in srgb, var(--user2) 10%, var(--surface));
+    }
+    .live-size-item.u2 .val { color: var(--user2); }
+    .live-size-item.unk {
+      border-color: color-mix(in srgb, var(--udU) 45%, var(--border));
+      background: color-mix(in srgb, var(--udU) 12%, var(--surface));
+    }
+    .live-size-item.unk .val { color: var(--udU); }
+    .graph-header h2 { margin: 0; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.04em; }
+    .graph-header p { margin: 0; font-size: 0.75rem; color: var(--muted); }
+    .graph-body { flex: 1; min-height: clamp(120px, 22vh, 360px); padding: 0.35rem 0.5rem 0.5rem; position: relative; }
+    .graph-body canvas { width: 100%; height: 100%; display: block; }
+    .legend { display: flex; gap: 0.85rem; flex-wrap: wrap; }
+    .legend span { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: var(--muted); }
+    .legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+    .raw-window {
+      position: fixed;
+      z-index: 50;
+      display: none;
+      width: min(640px, calc(100vw - 24px));
+      height: min(380px, calc(100vh - 24px));
+      min-width: min(320px, calc(100vw - 24px));
+      min-height: min(180px, calc(100vh - 24px));
+      max-width: calc(100vw - 16px);
+      max-height: calc(100vh - 16px);
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .raw-window.open { display: flex; }
+    .raw-window.resizing { user-select: none; }
+    .popup-header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+      padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--border);
+      cursor: grab; user-select: none; touch-action: none;
+      background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+      flex-shrink: 0;
+    }
+    .popup-header.dragging { cursor: grabbing; }
+    .popup-header h2 { margin: 0; font-size: 1.05rem; pointer-events: none; }
+    .popup-sub { margin: 0.25rem 0 0; font-size: 0.78rem; color: var(--muted); pointer-events: none; }
+    .popup-header .btn { cursor: pointer; }
+    .raw-list {
+      flex: 1; min-height: 0; overflow-y: auto; padding: 0.45rem 0.65rem 1.1rem;
+      font-family: var(--font-mono); font-size: 0.78rem; background: #1a2420; color: #d6e4db;
+    }
+    .raw-row {
+      padding: 0.22rem 0.15rem;
+      border-bottom: 1px solid rgba(213, 221, 214, 0.08);
+      color: #e8f0ea;
+      letter-spacing: 0.04em;
+      word-break: break-all;
+    }
+    .raw-dir {
+      display: inline-block;
+      min-width: 1.6rem;
+      color: #7a9b88;
+      font-weight: 600;
+    }
+    .empty-hint { margin: 1.5rem; text-align: center; color: #7a9b88; }
+    .raw-resize {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      z-index: 20;
+      width: 28px;
+      height: 28px;
+      cursor: nwse-resize;
+      touch-action: none;
+      background:
+        linear-gradient(135deg, transparent 48%, #8fb59f 48%, #8fb59f 54%, transparent 54%),
+        linear-gradient(135deg, transparent 62%, #8fb59f 62%, #8fb59f 68%, transparent 68%),
+        linear-gradient(135deg, transparent 76%, #8fb59f 76%, #8fb59f 82%, transparent 82%);
+    }
+    .raw-resize::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 14px;
+      height: 14px;
+      border-radius: 2px 0 10px 0;
+      background: color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+    @media (max-width: 1100px) {
+      .brand-block h1 { font-size: calc(1.05rem * var(--ui-scale)); }
+      .live-size-item { min-width: 5.5rem; }
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; grid-template-rows: auto 0 1fr; }
+      .sidebar-splitter { display: none; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: min(48vh, 420px); }
+      .graphs { grid-template-rows: minmax(200px, 1fr) minmax(200px, 1fr); }
+      .reg-row { grid-template-columns: 1fr 1fr; }
+      .reg-btns { grid-column: 1 / -1; justify-content: flex-end; }
+    }
+    @media (max-width: 640px) {
+      .reg-row { grid-template-columns: 1fr; }
+      .live-size { width: 100%; }
+      .live-size-item { flex: 1; min-width: 0; }
+    }
+    @media (min-width: 1800px) {
+      :root { --sidebar-default: clamp(320px, 24vw, 560px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <span class="brand">G2touch</span>
+        <h1>User Detection Data Monitor</h1>
+        <p class="sim-badge hid">HID LIVE</p>
+      </div>
+
+      <section class="side-section">
+        <h3>Devices</h3>
+        <p class="filter-note">G2Touch Y-board HID by G2TSP · VID 2A94 · PID DB00</p>
+        <ul class="device-list" id="deviceList"></ul>
+        <div class="btn-row">
+          <button type="button" class="btn block" id="btnGrant">Connect HID…</button>
+        </div>
+        <p class="stat" id="hidStatus"></p>
+      </section>
+
+      <section class="side-section">
+        <h3>Capture</h3>
+        <button type="button" class="btn primary block" id="btnRun" disabled>Start</button>
+        <p class="stat" id="sampleStat">Report Rate — · 0 samples</p>
+      </section>
+
+      <section class="side-section log-section">
+        <h3>Log</h3>
+        <div class="log-view" id="logView" aria-live="polite"></div>
+        <button type="button" class="btn ghost block" id="btnLogClear">Clear Log</button>
+      </section>
+
+      <section class="side-section">
+        <h3>8bit Register</h3>
+        <div class="reg-row">
+          <label class="field">
+            <span>Register</span>
+            <input type="text" id="regAddr" placeholder="00" maxlength="4" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Data</span>
+            <input type="text" id="regData" placeholder="00" maxlength="4" spellcheck="false" />
+          </label>
+          <div class="reg-btns">
+            <button type="button" class="btn" id="btnRegWrite" disabled>W</button>
+            <button type="button" class="btn" id="btnRegRead" disabled>R</button>
+          </div>
+        </div>
+        <p class="stat" id="regStatus"></p>
+      </section>
+
+      <section class="side-section">
+        <h3>Views</h3>
+        <label class="check-row">
+          <input type="checkbox" id="rawToggle" />
+          <span>Raw Data window</span>
+        </label>
+      </section>
+    </aside>
+
+    <div class="sidebar-splitter" id="sidebarSplitter" title="Drag to resize"></div>
+
+    <main class="main">
+      <header class="main-toolbar">
+        <div>
+          <p class="eyebrow">Live time graph</p>
+          <h2 id="deviceTitle">Select a device</h2>
+        </div>
+        <div class="status-pill" id="statusPill">Idle</div>
+      </header>
+
+      <div class="graphs">
+        <section class="graph-panel">
+          <header class="graph-header">
+            <div>
+              <h2>UD</h2>
+              <div class="legend" style="margin-top:0.25rem">
+                <span><i style="background:var(--ud1)"></i>User1</span>
+                <span><i style="background:var(--ud2)"></i>User2</span>
+                <span><i style="background:var(--udU)"></i>Unknown</span>
+                <span style="opacity:0.75">ID0~9 · Size</span>
+              </div>
+            </div>
+          </header>
+          <div class="graph-body"><canvas id="udChart"></canvas></div>
+        </section>
+        <section class="graph-panel">
+          <header class="graph-header">
+            <div>
+              <h2>OD</h2>
+              <div class="legend" style="margin-top:0.25rem">
+                <span style="opacity:0.75">live</span>
+              </div>
+            </div>
+            <div class="live-size" aria-live="polite">
+              <div class="live-size-item u1">
+                <span class="lbl">User1</span>
+                <span class="val" id="odLiveUser1">0</span>
+              </div>
+              <div class="live-size-item u2">
+                <span class="lbl">User2</span>
+                <span class="val" id="odLiveUser2">0</span>
+              </div>
+            </div>
+          </header>
+          <div class="graph-body"><canvas id="odChart"></canvas></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="raw-window" id="rawPopup" role="dialog" aria-label="Raw Data">
+    <header class="popup-header" id="rawDragHandle">
+      <div>
+        <h2>Raw Data</h2>
+        <p class="popup-sub" id="rawSub">—</p>
+      </div>
+      <button type="button" class="btn ghost" id="rawClose">Close</button>
+    </header>
+    <div class="raw-list" id="rawList">
+      <p class="empty-hint">Waiting for HID reports…</p>
+    </div>
+    <div class="raw-resize" id="rawResize" title="Drag to resize"></div>
+  </div>
+
+  <script>
+    const TARGET = 'G2Touch Y-board HID by G2TSP';
+    const G2_VENDOR_ID = 0x2a94;
+    const G2_PRODUCT_ID = 0xdb00;
+    const G2_USAGE_PAGE = 0xff00;
+    const G2_USAGE = 0x0001;
+    const MAX_SAMPLES = 120;
+    const MAX_RAW = 100;
+    const OD_SERIES = [
+      { key: 'odUser1', color: '#1E88E5' },
+      { key: 'odUser2', color: '#E53935' },
+    ];
+    const OD_YKEYS = ['odUser1', 'odUser2'];
+
+    const STX0 = 0x02;
+    const STX1 = 0xA3;
+    const ETX0 = 0x03;
+    const ETX1 = 0xB3;
+    const UD_ID_COUNT = 10;
+    const UD_SLOT_LEN = 3; // UID + SizeMSB + SizeLSB
+    const UD_OD_DATA_LEN = UD_ID_COUNT * UD_SLOT_LEN + 4; // 34
+
+    /** Start/Stop = 8bit register write to stream enable flag */
+    const REG_STREAM = 0xe4;
+    const REG_STREAM_ON = 0x80;
+    const REG_STREAM_OFF = 0x00;
+
+    /**
+     * Multipacket HID RX (64B): ReportID 0x0B | PacketIndex | stream chunk (59) | pad
+     * Stream: 02 A3 | Cmd | LenMSB LenLSB | Data… | 03 B3
+     *   Cmd 0x51 = Log (printf text)
+     *   Cmd 0x6A = UD/OD sample data
+     */
+    const HID_REPORT_ID = 0x0b;
+    const HID_CHUNK = 59;
+    const CMD_LOG = 0x51;
+    const CMD_UD = 0x6a;
+    const MAX_LOG_LINES = 200;
+
+    /** 8bit register R/W TX (ReportID 0x0A, Cmd 0xDB), RX Ack on ReportID 0x0B */
+    const REG_REPORT_ID = 0x0a;
+    const REG_CMD = 0xdb;
+    const REG_PKT_INDEX = 0x00;
+    const REG_OP_READ = 0x01;
+    const REG_OP_WRITE = 0x02;
+    const REG_ACK_OK = 0x00;
+    const REG_TIMEOUT_MS = 2000;
+    const REG_STORAGE_KEY = 'ud_debug_reg_fields';
+
+    const UID_USER1 = 1;
+    const UID_USER2 = 2;
+    const UID_UNKNOWN = 0;
+    const COLOR_USER1 = '#1E88E5';
+    const COLOR_USER2 = '#E53935';
+    const COLOR_UNKNOWN = '#7A8B7D';
+
+    function bytesToHex(bytes) {
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+    }
+
+    function u16be(i, bytes) {
+      return ((bytes[i] << 8) | bytes[i + 1]) & 0xffff;
+    }
+
+    function emptyUdSlots() {
+      return Array.from({ length: UD_ID_COUNT }, (_, id) => ({
+        id,
+        uid: UID_UNKNOWN,
+        size: 0,
+      }));
+    }
+
+    /** Data payload for Cmd 0x6A: ID0..9 (UID,SizeBE) + OD U1/U2 BE */
+    function parseUdOdData(data) {
+      if (!data || data.length < UD_OD_DATA_LEN) return null;
+      const udSlots = [];
+      for (let id = 0; id < UD_ID_COUNT; id += 1) {
+        const off = id * UD_SLOT_LEN;
+        udSlots.push({
+          id,
+          uid: data[off],
+          size: u16be(off + 1, data),
+        });
+      }
+      const odOff = UD_ID_COUNT * UD_SLOT_LEN;
+      return {
+        udSlots,
+        odUser1: u16be(odOff, data),
+        odUser2: u16be(odOff + 2, data),
+      };
+    }
+
+    function summarizeUd(udSlots) {
+      let udUser1 = 0;
+      let udUser2 = 0;
+      let udUnknown = 0;
+      for (const s of udSlots) {
+        if (s.uid === UID_USER1) udUser1 = Math.max(udUser1, s.size);
+        else if (s.uid === UID_USER2) udUser2 = Math.max(udUser2, s.size);
+        else if (s.uid === UID_UNKNOWN) udUnknown = Math.max(udUnknown, s.size);
+      }
+      return { udUser1, udUser2, udUnknown };
+    }
+
+    function applyUdOdParsed(parsed, time) {
+      const udSum = summarizeUd(parsed.udSlots);
+      state.lastValues = {
+        ...udSum,
+        odUser1: parsed.odUser1,
+        odUser2: parsed.odUser2,
+        udSlots: parsed.udSlots,
+      };
+      state.udSlots = parsed.udSlots;
+      state.liveUdUser1 = udSum.udUser1;
+      state.liveUdUser2 = udSum.udUser2;
+      state.liveUdUnknown = udSum.udUnknown;
+      state.liveOdUser1 = parsed.odUser1;
+      state.liveOdUser2 = parsed.odUser2;
+      state.needUdDraw = true;
+      noteRxRate();
+
+      const wall = Date.now();
+      const throttle = state.intervalMs;
+      if (throttle === 0 || wall - state.lastGraphAt >= throttle) {
+        state.lastGraphAt = wall;
+        pushCapped(state.samples, {
+          time,
+          odUser1: parsed.odUser1,
+          odUser2: parsed.odUser2,
+        }, MAX_SAMPLES);
+        state.needOdDraw = true;
+      }
+    }
+
+    function hasVendorUsage(hid) {
+      return (hid.collections || []).some(
+        (c) => c.usagePage === G2_USAGE_PAGE && c.usage === G2_USAGE
+      );
+    }
+
+    /** Match by VID:PID only — Windows/WebHID productName is often generic. */
+    function isTargetDevice(hid) {
+      return hid.vendorId === G2_VENDOR_ID && hid.productId === G2_PRODUCT_ID;
+    }
+
+    function preferDevice(a, b) {
+      return (hasVendorUsage(b) ? 1 : 0) - (hasVendorUsage(a) ? 1 : 0);
+    }
+
+    function fmtId(n) {
+      return n.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    let idSeq = 0;
+    /** @type {{ id: string, name: string, vendorId: string, productId: string, connected: boolean, hid: HIDDevice }[]} */
+    let devices = [];
+
+    const state = {
+      selectedId: null,
+      running: false,
+      intervalMs: 100,
+      samples: [],
+      rawPackets: [],
+      rawRendered: 0,
+      rawSeen: 0,
+      rxTimes: [],
+      startTime: null,
+      lastGraphAt: 0,
+      lastChromeAt: 0,
+      openHid: null,
+      onReport: null,
+      lastValues: null,
+      udSlots: emptyUdSlots(),
+      liveUdUser1: 0,
+      liveUdUser2: 0,
+      liveUdUnknown: 0,
+      liveOdUser1: 0,
+      liveOdUser2: 0,
+      uiRaf: 0,
+      needUdDraw: false,
+      needOdDraw: false,
+      needChrome: false,
+      needRaw: false,
+      logLines: [],
+      lastRelTime: 0,
+      hidAsm: null,
+      regPending: null,
+      sidebarUserSet: false,
+    };
+
+    const paintCache = {
+      grid: '#d0dad2',
+      muted: '#5a6b62',
+      warmAt: 0,
+    };
+
+    function refreshPaintCache(force) {
+      const now = Date.now();
+      if (!force && now - paintCache.warmAt < 2000) return;
+      const cs = getComputedStyle(document.documentElement);
+      paintCache.grid = cs.getPropertyValue('--grid').trim() || '#d0dad2';
+      paintCache.muted = cs.getPropertyValue('--muted').trim() || '#5a6b62';
+      paintCache.warmAt = now;
+    }
+
+    /** Avoid resetting canvas buffer every frame (expensive). */
+    function prepareCanvas(canvas) {
+      const parent = canvas.parentElement;
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(1, parent.clientWidth);
+      const h = Math.max(1, parent.clientHeight);
+      const bw = Math.max(1, Math.floor(w * dpr));
+      const bh = Math.max(1, Math.floor(h * dpr));
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw;
+        canvas.height = bh;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      return { ctx, w, h };
+    }
+
+    function pushCapped(arr, item, max) {
+      arr.push(item);
+      if (arr.length > max) arr.splice(0, arr.length - max);
+    }
+
+    function scheduleUiFlush() {
+      if (state.uiRaf) return;
+      state.uiRaf = requestAnimationFrame(flushUi);
+    }
+
+    function flushUi() {
+      state.uiRaf = 0;
+      refreshPaintCache(false);
+      if (state.needUdDraw) {
+        state.needUdDraw = false;
+        drawUdBars(els.udChart);
+      }
+      if (state.needOdDraw) {
+        state.needOdDraw = false;
+        drawChart(els.odChart, OD_SERIES, OD_YKEYS);
+      }
+      if (state.needChrome) {
+        state.needChrome = false;
+        updateChrome();
+      }
+      if (state.needRaw) {
+        state.needRaw = false;
+        renderRaw(false);
+      }
+    }
+
+    const els = {
+      deviceList: document.getElementById('deviceList'),
+      btnRun: document.getElementById('btnRun'),
+      btnGrant: document.getElementById('btnGrant'),
+      hidStatus: document.getElementById('hidStatus'),
+      sampleStat: document.getElementById('sampleStat'),
+      logView: document.getElementById('logView'),
+      btnLogClear: document.getElementById('btnLogClear'),
+      sidebarSplitter: document.getElementById('sidebarSplitter'),
+      regAddr: document.getElementById('regAddr'),
+      regData: document.getElementById('regData'),
+      btnRegRead: document.getElementById('btnRegRead'),
+      btnRegWrite: document.getElementById('btnRegWrite'),
+      regStatus: document.getElementById('regStatus'),
+      odLiveUser1: document.getElementById('odLiveUser1'),
+      odLiveUser2: document.getElementById('odLiveUser2'),
+      deviceTitle: document.getElementById('deviceTitle'),
+      statusPill: document.getElementById('statusPill'),
+      rawToggle: document.getElementById('rawToggle'),
+      rawPopup: document.getElementById('rawPopup'),
+      rawClose: document.getElementById('rawClose'),
+      rawList: document.getElementById('rawList'),
+      rawSub: document.getElementById('rawSub'),
+      rawDragHandle: document.getElementById('rawDragHandle'),
+      rawResize: document.getElementById('rawResize'),
+      udChart: document.getElementById('udChart'),
+      odChart: document.getElementById('odChart'),
+    };
+
+    const drag = { active: false, el: null, handle: null, ox: 0, oy: 0 };
+    const resize = {
+      active: false,
+      el: null,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      startW: 0,
+      startH: 0,
+      originLeft: 0,
+      originTop: 0,
+    };
+    const sideResize = { active: false, startX: 0, startW: 0 };
+
+    function setHidStatus(msg) {
+      els.hidStatus.textContent = msg || '';
+    }
+
+    function selectedDevice() {
+      return devices.find((d) => d.id === state.selectedId) || null;
+    }
+
+    function displayName(hid) {
+      const usage = hasVendorUsage(hid) ? ' · FF00/0001' : '';
+      return `${TARGET}${usage}`;
+    }
+
+    function wrapHid(hid) {
+      const existing = devices.find((d) => d.hid === hid);
+      if (existing) {
+        existing.name = displayName(hid);
+        existing.connected = true;
+        return existing;
+      }
+      return {
+        id: 'hid-' + (++idSeq),
+        name: displayName(hid),
+        vendorId: fmtId(hid.vendorId),
+        productId: fmtId(hid.productId),
+        connected: true,
+        hid,
+      };
+    }
+
+    async function refreshDevices() {
+      if (!navigator.hid) {
+        devices = [];
+        state.selectedId = null;
+        setHidStatus('WebHID unsupported — use Chrome/Edge on localhost');
+        renderDevices();
+        updateChrome();
+        return;
+      }
+      if (!window.isSecureContext) {
+        devices = [];
+        state.selectedId = null;
+        setHidStatus('Open via http://localhost:5173 (serve.ps1)');
+        renderDevices();
+        updateChrome();
+        return;
+      }
+
+      try {
+        const all = await navigator.hid.getDevices();
+        const matched = all.filter(isTargetDevice).slice().sort(preferDevice);
+        devices = matched.map(wrapHid);
+        if (!devices.some((d) => d.id === state.selectedId)) {
+          state.selectedId = devices[0] ? devices[0].id : null;
+        }
+        setHidStatus(
+          devices.length
+            ? devices.length + ' device(s) ready — Start available'
+            : 'None yet — click Connect HID…'
+        );
+      } catch (err) {
+        setHidStatus('Enumerate failed: ' + (err && err.message ? err.message : err));
+      }
+      renderDevices();
+      updateChrome();
+    }
+
+    function attachInputListener(hid) {
+      if (!hid) return;
+      if (state.openHid === hid && state.onReport) return;
+      if (state.openHid && state.onReport) {
+        try {
+          state.openHid.removeEventListener('inputreport', state.onReport);
+        } catch (_) {}
+      }
+      state.onReport = onInputReport;
+      state.openHid = hid;
+      hid.addEventListener('inputreport', state.onReport);
+    }
+
+    async function openHidOnly(entry) {
+      if (!entry || !entry.hid) return false;
+      if (!entry.hid.opened) await entry.hid.open();
+      attachInputListener(entry.hid);
+      state.selectedId = entry.id;
+      renderDevices();
+      updateChrome();
+      setHidStatus('HID connected');
+      return true;
+    }
+
+    async function grantDevice() {
+      if (!navigator.hid) {
+        setHidStatus('WebHID unsupported — use Chrome/Edge');
+        return;
+      }
+      if (!window.isSecureContext) {
+        setHidStatus('Open via http://localhost:5173 (serve.ps1)');
+        return;
+      }
+      try {
+        await refreshDevices();
+        if (devices.length) {
+          if (!state.selectedId) state.selectedId = devices[0].id;
+          const entry = selectedDevice();
+          setHidStatus('Connecting HID…');
+          await openHidOnly(entry);
+          return;
+        }
+
+        const picked = await navigator.hid.requestDevice({
+          filters: [
+            {
+              vendorId: G2_VENDOR_ID,
+              productId: G2_PRODUCT_ID,
+              usagePage: G2_USAGE_PAGE,
+              usage: G2_USAGE,
+            },
+            {
+              vendorId: G2_VENDOR_ID,
+              productId: G2_PRODUCT_ID,
+            },
+          ],
+        });
+        const matched = picked.filter(isTargetDevice).slice().sort(preferDevice);
+        if (picked.length && !matched.length) {
+          setHidStatus('Selected device is not 2A94:DB00');
+          return;
+        }
+        await refreshDevices();
+        if (matched[0]) {
+          let entry = devices.find((d) => d.hid === matched[0]);
+          if (!entry) {
+            entry = wrapHid(matched[0]);
+            devices.push(entry);
+          }
+          setHidStatus('Connecting HID…');
+          await openHidOnly(entry);
+        }
+      } catch (err) {
+        if (err && err.name === 'NotAllowedError') {
+          setHidStatus('Permission cancelled');
+        } else {
+          setHidStatus('Connect failed: ' + (err && err.message ? err.message : err));
+        }
+      }
+    }
+
+    function renderDevices() {
+      if (devices.length === 0) {
+        els.deviceList.innerHTML = '<li class="device-empty">No active device</li>';
+        return;
+      }
+      els.deviceList.innerHTML = devices.map((d) => `
+        <li>
+          <button type="button" class="device-item${state.selectedId === d.id ? ' active' : ''}" data-id="${d.id}">
+            <span class="dot ${d.connected ? 'on' : ''}"></span>
+            <span class="device-meta">
+              <span class="device-name">${d.name}</span>
+              <span class="device-ids">VID ${d.vendorId} · PID ${d.productId}</span>
+            </span>
+          </button>
+        </li>
+      `).join('');
+    }
+
+    function noteRxRate() {
+      state.rxTimes.push(performance.now());
+    }
+
+    function currentReportRateHz() {
+      const now = performance.now();
+      const cutoff = now - 1000;
+      let i = 0;
+      while (i < state.rxTimes.length && state.rxTimes[i] < cutoff) i += 1;
+      if (i > 0) state.rxTimes.splice(0, i);
+      const n = state.rxTimes.length;
+      if (!n) return 0;
+      const age = now - state.rxTimes[0];
+      if (age < 50) return n;
+      return Math.round((n * 1000) / Math.min(age, 1000));
+    }
+
+    function updateChrome() {
+      const d = selectedDevice();
+      els.deviceTitle.textContent = d ? d.name : 'Select a device';
+      els.btnRun.disabled = !d || !navigator.hid || !window.isSecureContext;
+      els.btnRun.textContent = state.running ? 'Stop' : 'Start';
+      els.btnRun.classList.toggle('stop', state.running);
+      els.btnRegRead.disabled = !d || !navigator.hid || !window.isSecureContext;
+      els.btnRegWrite.disabled = !d || !navigator.hid || !window.isSecureContext;
+      els.statusPill.textContent = state.running ? 'HID Streaming' : 'Idle';
+      els.statusPill.classList.toggle('live', state.running);
+      const hz = currentReportRateHz();
+      const rateLabel = state.running || hz > 0 ? hz + ' Hz' : '—';
+      els.sampleStat.textContent =
+        'Report Rate ' + rateLabel + ' · ' + state.samples.length.toLocaleString() + ' samples';
+      els.odLiveUser1.textContent = String(state.liveOdUser1);
+      els.odLiveUser2.textContent = String(state.liveOdUser2);
+      els.rawSub.textContent = (d ? d.name : 'No device') + ' · RX/TX ' + state.rawSeen;
+    }
+
+    function rawRowHtml(p) {
+      const tag = p.dir ? `<span class="raw-dir">${p.dir}</span> ` : '';
+      return `<div class="raw-row">${tag}${p.hex}</div>`;
+    }
+
+    function logRawPacket(hexOrBytes, dir) {
+      state.rawSeen += 1;
+      // Raw window closed: skip hex formatting / DOM history (major GC source)
+      if (!els.rawPopup.classList.contains('open')) {
+        state.needChrome = true;
+        scheduleUiFlush();
+        return;
+      }
+      const hex =
+        typeof hexOrBytes === 'string'
+          ? hexOrBytes
+          : bytesToHex(hexOrBytes);
+      state.rawPackets.push({
+        timestamp: Date.now(),
+        hex,
+        dir: dir || 'RX',
+      });
+      if (state.rawPackets.length > MAX_RAW) {
+        const dropped = state.rawPackets.length - MAX_RAW;
+        state.rawPackets.splice(0, dropped);
+        state.rawRendered = Math.max(0, state.rawRendered - dropped);
+      }
+      state.needChrome = true;
+      state.needRaw = true;
+      scheduleUiFlush();
+    }
+
+    function renderRaw(full) {
+      if (!els.rawPopup.classList.contains('open')) return;
+      if (state.rawPackets.length === 0) {
+        els.rawList.innerHTML = '<p class="empty-hint">Waiting for HID reports…</p>';
+        state.rawRendered = 0;
+        return;
+      }
+
+      const nearBottom =
+        els.rawList.scrollHeight - els.rawList.scrollTop - els.rawList.clientHeight < 40;
+
+      if (full || state.rawRendered === 0 || state.rawRendered > state.rawPackets.length) {
+        els.rawList.innerHTML = state.rawPackets.map(rawRowHtml).join('');
+        state.rawRendered = state.rawPackets.length;
+      } else if (state.rawRendered < state.rawPackets.length) {
+        const hint = els.rawList.querySelector('.empty-hint');
+        if (hint) els.rawList.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        const wrap = document.createElement('div');
+        for (let i = state.rawRendered; i < state.rawPackets.length; i++) {
+          wrap.innerHTML = rawRowHtml(state.rawPackets[i]);
+          frag.appendChild(wrap.firstElementChild);
+        }
+        els.rawList.appendChild(frag);
+        while (els.rawList.children.length > state.rawPackets.length) {
+          els.rawList.removeChild(els.rawList.firstChild);
+        }
+        state.rawRendered = state.rawPackets.length;
+      }
+
+      if (nearBottom || full) els.rawList.scrollTop = els.rawList.scrollHeight;
+    }
+
+    function placePopupWindow(el, left, top) {
+      const maxL = Math.max(8, window.innerWidth - el.offsetWidth - 8);
+      const maxT = Math.max(8, window.innerHeight - el.offsetHeight - 8);
+      el.style.left = Math.min(Math.max(8, left), maxL) + 'px';
+      el.style.top = Math.min(Math.max(8, top), maxT) + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+    }
+
+    function ensurePopupPosition(el, defaultLeft, defaultTop) {
+      if (!el.style.left) {
+        placePopupWindow(el, defaultLeft, defaultTop);
+      } else {
+        placePopupWindow(el, parseFloat(el.style.left), parseFloat(el.style.top));
+      }
+    }
+
+    function placeRawWindow(left, top) {
+      placePopupWindow(els.rawPopup, left, top);
+    }
+
+    function ensureRawPosition() {
+      ensurePopupPosition(
+        els.rawPopup,
+        window.innerWidth - els.rawPopup.offsetWidth - 28,
+        72,
+      );
+    }
+
+    function setSidebarWidth(px) {
+      const minW = Math.round(Math.min(240, window.innerWidth * 0.4));
+      const maxW = Math.max(minW, Math.floor(window.innerWidth * 0.7));
+      const w = Math.min(maxW, Math.max(minW, Math.round(px)));
+      document.documentElement.style.setProperty('--sidebar-w', w + 'px');
+      return w;
+    }
+
+    function defaultSidebarWidth() {
+      const w = window.innerWidth;
+      if (w <= 900) return w;
+      return Math.round(Math.min(520, Math.max(260, w * 0.28)));
+    }
+
+    function applyDisplayLayout() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const scale = Math.min(1.25, Math.max(0.8, Math.min(w / 1440, h / 900)));
+      document.documentElement.style.setProperty('--ui-scale', scale.toFixed(3));
+
+      if (!state.sidebarUserSet) {
+        setSidebarWidth(defaultSidebarWidth());
+      } else {
+        const cur = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-w').trim();
+        if (cur) setSidebarWidth(parseFloat(cur));
+      }
+
+      // Fit raw popup inside viewport if open
+      if (els.rawPopup && els.rawPopup.classList.contains('open')) {
+        const rect = els.rawPopup.getBoundingClientRect();
+        const maxW = Math.max(280, w - 16);
+        const maxH = Math.max(160, h - 16);
+        if (rect.width > maxW) els.rawPopup.style.width = maxW + 'px';
+        if (rect.height > maxH) els.rawPopup.style.height = maxH + 'px';
+        ensureRawPosition();
+      }
+    }
+
+    function bindPopupDrag(handle, popup) {
+      handle.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('button')) return;
+        drag.active = true;
+        drag.el = popup;
+        drag.handle = handle;
+        handle.classList.add('dragging');
+        const rect = popup.getBoundingClientRect();
+        drag.ox = e.clientX - rect.left;
+        drag.oy = e.clientY - rect.top;
+        handle.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+      handle.addEventListener('pointermove', (e) => {
+        if (!drag.active || drag.el !== popup) return;
+        placePopupWindow(popup, e.clientX - drag.ox, e.clientY - drag.oy);
+      });
+      function endDrag(e) {
+        if (!drag.active || drag.el !== popup) return;
+        drag.active = false;
+        drag.el = null;
+        handle.classList.remove('dragging');
+        try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      handle.addEventListener('pointerup', endDrag);
+      handle.addEventListener('pointercancel', endDrag);
+    }
+
+    function bindPopupResize(handle, popup) {
+      handle.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = popup.getBoundingClientRect();
+        resize.active = true;
+        resize.el = popup;
+        resize.pointerId = e.pointerId;
+        resize.startX = e.clientX;
+        resize.startY = e.clientY;
+        resize.startW = rect.width;
+        resize.startH = rect.height;
+        resize.originLeft = rect.left;
+        resize.originTop = rect.top;
+        popup.classList.add('resizing');
+        document.body.style.cursor = 'nwse-resize';
+      });
+    }
+
+    function drawChart(canvas, series, yKeys) {
+      const { ctx, w, h } = prepareCanvas(canvas);
+      refreshPaintCache(false);
+
+      const pad = { top: 12, right: 12, bottom: 28, left: 36 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+
+      const data = state.samples;
+      let yMax = 1;
+      for (const pt of data) {
+        for (const k of yKeys) {
+          yMax = Math.max(yMax, Number(pt[k]) || 0);
+        }
+      }
+      yMax = Math.max(4, Math.ceil(yMax));
+
+      ctx.strokeStyle = paintCache.grid;
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + (plotH * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + plotW, y);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = paintCache.muted;
+      ctx.font = '11px IBM Plex Mono, Consolas, monospace';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i <= 4; i++) {
+        const val = yMax - (yMax * i) / 4;
+        const y = pad.top + (plotH * i) / 4;
+        ctx.fillText(String(Math.round(val)), pad.left - 6, y);
+      }
+
+      if (data.length < 2) {
+        ctx.textAlign = 'center';
+        ctx.fillText('Waiting for HID data…', pad.left + plotW / 2, pad.top + plotH / 2);
+        return;
+      }
+
+      const t0 = data[0].time;
+      const t1 = data[data.length - 1].time;
+      const span = Math.max(1, t1 - t0);
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i <= 4; i++) {
+        const t = t0 + (span * i) / 4;
+        const x = pad.left + (plotW * i) / 4;
+        ctx.fillText((t / 1000).toFixed(1) + 's', x, pad.top + plotH + 8);
+      }
+
+      function xOf(t) { return pad.left + ((t - t0) / span) * plotW; }
+      function yOf(v) { return pad.top + (1 - Math.min(yMax, Math.max(0, v)) / yMax) * plotH; }
+
+      series.forEach((s) => {
+        ctx.beginPath();
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        data.forEach((pt, i) => {
+          const x = xOf(pt.time);
+          const y = yOf(pt[s.key]);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+    }
+
+    function uidColor(uid) {
+      if (uid === UID_USER1) return COLOR_USER1;
+      if (uid === UID_USER2) return COLOR_USER2;
+      return COLOR_UNKNOWN;
+    }
+
+    function drawUdBars(canvas) {
+      const { ctx, w, h } = prepareCanvas(canvas);
+      refreshPaintCache(false);
+
+      const pad = { top: 22, right: 12, bottom: 28, left: 40 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+      const slots = state.udSlots || emptyUdSlots();
+
+      let yMax = 1;
+      for (const s of slots) yMax = Math.max(yMax, s.size || 0);
+      yMax = Math.max(4, Math.ceil(yMax));
+
+      const grid = paintCache.grid;
+      const muted = paintCache.muted;
+
+      ctx.strokeStyle = grid;
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + (plotH * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + plotW, y);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = muted;
+      ctx.font = '11px IBM Plex Mono, Consolas, monospace';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i <= 4; i++) {
+        const val = yMax - (yMax * i) / 4;
+        const y = pad.top + (plotH * i) / 4;
+        ctx.fillText(String(Math.round(val)), pad.left - 6, y);
+      }
+
+      const gap = 6;
+      const slotW = Math.max(8, (plotW - gap * (UD_ID_COUNT + 1)) / UD_ID_COUNT);
+      const barW = Math.max(4, slotW / 2);
+
+      for (let id = 0; id < UD_ID_COUNT; id += 1) {
+        const s = slots[id] || { id, uid: UID_UNKNOWN, size: 0 };
+        const color = uidColor(s.uid);
+        const slotX = pad.left + gap + id * (slotW + gap);
+        const cx = slotX + slotW / 2;
+        const x = slotX + (slotW - barW) / 2;
+        const barH = (Math.min(yMax, Math.max(0, s.size)) / yMax) * plotH;
+        const y = pad.top + plotH - barH;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, barW, Math.max(barH, s.size > 0 ? 2 : 0));
+
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px IBM Plex Mono, Consolas, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(String(s.size), cx, y - 4);
+
+        ctx.fillStyle = muted;
+        ctx.font = '11px IBM Plex Mono, Consolas, monospace';
+        ctx.textBaseline = 'top';
+        ctx.fillText('ID' + id, cx, pad.top + plotH + 8);
+      }
+    }
+
+    function drawAll() {
+      drawUdBars(els.udChart);
+      drawChart(els.odChart, OD_SERIES, OD_YKEYS);
+    }
+
+    function onInputReport(event) {
+      const view = event.data;
+      const data = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+      const timestamp = performance.now();
+      if (state.startTime === null) state.startTime = timestamp;
+      const t = timestamp - state.startTime;
+      state.lastRelTime = t;
+
+      let rawBytes;
+      if (event.reportId) {
+        rawBytes = new Uint8Array(1 + data.length);
+        rawBytes[0] = event.reportId;
+        rawBytes.set(data, 1);
+      } else {
+        rawBytes = data;
+      }
+
+      logRawPacket(rawBytes, 'RX');
+      ingestHidStream(rawBytes, event.reportId);
+
+      state.needChrome = true;
+      scheduleUiFlush();
+    }
+
+    function clearCaptureBuffers() {
+      if (state.uiRaf) {
+        cancelAnimationFrame(state.uiRaf);
+        state.uiRaf = 0;
+      }
+      state.startTime = null;
+      state.lastGraphAt = 0;
+      state.samples = [];
+      state.rawPackets = [];
+      state.rawRendered = 0;
+      state.rawSeen = 0;
+      state.rxTimes = [];
+      state.lastValues = null;
+      state.udSlots = emptyUdSlots();
+      state.liveUdUser1 = 0;
+      state.liveUdUser2 = 0;
+      state.liveUdUnknown = 0;
+      state.liveOdUser1 = 0;
+      state.liveOdUser2 = 0;
+      state.needUdDraw = false;
+      state.needOdDraw = false;
+      state.needChrome = false;
+      state.needRaw = false;
+      state.hidAsm = null;
+      cancelRegPending('cleared');
+      updateChrome();
+      renderRaw(true);
+      drawAll();
+    }
+
+    async function stop() {
+      state.running = false;
+      const hid = state.openHid || (selectedDevice() && selectedDevice().hid);
+
+      if (hid && hid.opened) {
+        try {
+          const wait = awaitRegResponse(REG_OP_WRITE, REG_STREAM);
+          await sendRegPacket(hid, buildRegPacket(REG_OP_WRITE, REG_STREAM, REG_STREAM_OFF));
+          const res = await wait;
+          if (res.ack === REG_ACK_OK) {
+            setHidStatus('Stopped · Reg E4 = 0x00');
+          } else {
+            setHidStatus('Stop ACK fail · Ack ' + formatRegByte(res.ack));
+          }
+        } catch (sendErr) {
+          setHidStatus('Stop failed: ' + (sendErr && sendErr.message ? sendErr.message : sendErr));
+        }
+      }
+
+      // Keep HID open + listener for register R/W / Log
+      updateChrome();
+    }
+
+    async function start() {
+      const d = selectedDevice();
+      if (!d || state.running) return;
+
+      clearCaptureBuffers();
+      try {
+        if (!d.hid.opened) await d.hid.open();
+        attachInputListener(d.hid);
+
+        try {
+          const wait = awaitRegResponse(REG_OP_WRITE, REG_STREAM);
+          await sendRegPacket(d.hid, buildRegPacket(REG_OP_WRITE, REG_STREAM, REG_STREAM_ON));
+          const res = await wait;
+          if (res.ack !== REG_ACK_OK) {
+            state.running = false;
+            setHidStatus('Start ACK fail · Ack ' + formatRegByte(res.ack));
+            updateChrome();
+            return;
+          }
+        } catch (sendErr) {
+          state.running = false;
+          setHidStatus('Start failed: ' + (sendErr && sendErr.message ? sendErr.message : sendErr));
+          updateChrome();
+          return;
+        }
+
+        state.running = true;
+        setHidStatus('Streaming');
+        updateChrome();
+      } catch (err) {
+        state.running = false;
+        setHidStatus('Open failed: ' + (err && err.message ? err.message : err));
+        updateChrome();
+      }
+    }
+
+    /**
+     * Multipacket stream: 02 A3 | Cmd | LenMSB LenLSB | Data… | 03 B3
+     * HID: 0B | PacketIndex | up to 59 stream bytes | pad 00
+     * Cmd 0x51 → Log text, Cmd 0x6A → UD/OD data (34B)
+     */
+    function resetHidAsm() {
+      state.hidAsm = null;
+    }
+
+    function formatLogTime(d) {
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      return hh + ':' + mm + ':' + ss;
+    }
+
+    function appendLogLine(text) {
+      const line = formatLogTime(new Date()) + ' ' + text;
+      state.logLines.push(line);
+      if (state.logLines.length > MAX_LOG_LINES) {
+        state.logLines.splice(0, state.logLines.length - MAX_LOG_LINES);
+      }
+      renderLogView(true);
+    }
+
+    function renderLogView(scrollBottom) {
+      const nearBottom =
+        els.logView.scrollHeight - els.logView.scrollTop - els.logView.clientHeight < 40;
+      els.logView.textContent = '';
+      for (const line of state.logLines) {
+        const p = document.createElement('p');
+        p.className = 'log-line';
+        p.textContent = line;
+        els.logView.appendChild(p);
+      }
+      if (scrollBottom || nearBottom) {
+        els.logView.scrollTop = els.logView.scrollHeight;
+      }
+    }
+
+    function clearLogView() {
+      state.logLines = [];
+      resetHidAsm();
+      els.logView.textContent = '';
+    }
+
+    function extractHidPacket(bytes, reportId) {
+      if (!bytes || !bytes.length) return null;
+      if (bytes[0] === HID_REPORT_ID && bytes.length >= 2) {
+        return { index: bytes[1], payload: bytes.subarray(2) };
+      }
+      if (reportId === HID_REPORT_ID && bytes.length >= 1) {
+        return { index: bytes[0], payload: bytes.subarray(1) };
+      }
+      return null;
+    }
+
+    function decodeLogText(data) {
+      try {
+        return new TextDecoder('utf-8', { fatal: false }).decode(data);
+      } catch (_) {
+        return Array.from(data, (b) =>
+          b >= 32 && b < 127 ? String.fromCharCode(b) : '.'
+        ).join('');
+      }
+    }
+
+    function finishHidMessage(stream, totalNeed) {
+      if (stream.length < totalNeed) return;
+      if (stream[totalNeed - 2] !== ETX0 || stream[totalNeed - 1] !== ETX1) {
+        resetHidAsm();
+        return;
+      }
+      const cmd = stream[2];
+      const dataLen = ((stream[3] << 8) | stream[4]) & 0xffff;
+      const data = stream.subarray(5, 5 + dataLen);
+      resetHidAsm();
+
+      if (cmd === CMD_LOG) {
+        appendLogLine(decodeLogText(data));
+        return;
+      }
+      if (cmd === CMD_UD) {
+        // UD/OD graphs only while Start (streaming) is active
+        if (!state.running) return;
+        const parsed = parseUdOdData(data);
+        if (parsed) applyUdOdParsed(parsed, state.lastRelTime || 0);
+        return;
+      }
+      if (cmd === REG_CMD) {
+        handleRegResponse(data);
+      }
+    }
+
+    function isHidStreamHeader(payload) {
+      return (
+        payload &&
+        payload.length >= 5 &&
+        payload[0] === STX0 &&
+        payload[1] === STX1 &&
+        (payload[2] === CMD_LOG || payload[2] === CMD_UD || payload[2] === REG_CMD)
+      );
+    }
+
+    function startHidAsm(index, payload) {
+      const dataLen = ((payload[3] << 8) | payload[4]) & 0xffff;
+      const totalNeed = 5 + dataLen + 2;
+      const n = Math.min(HID_CHUNK, payload.length, totalNeed);
+      const stream = new Uint8Array(totalNeed);
+      stream.set(payload.subarray(0, n), 0);
+      state.hidAsm = {
+        nextIndex: (index + 1) & 0xff,
+        filled: n,
+        totalNeed,
+        stream,
+      };
+      if (state.hidAsm.filled >= totalNeed) {
+        finishHidMessage(stream, totalNeed);
+      }
+    }
+
+    function ingestHidStream(bytes, reportId) {
+      const pkt = extractHidPacket(bytes, reportId);
+      if (!pkt) return;
+
+      const { index, payload } = pkt;
+
+      if (isHidStreamHeader(payload)) {
+        startHidAsm(index, payload);
+        return;
+      }
+
+      const asm = state.hidAsm;
+      if (!asm || index !== asm.nextIndex) return;
+
+      const remain = asm.totalNeed - asm.filled;
+      if (remain <= 0) {
+        resetHidAsm();
+        return;
+      }
+      const n = Math.min(HID_CHUNK, payload.length, remain);
+      asm.stream.set(payload.subarray(0, n), asm.filled);
+      asm.filled += n;
+      asm.nextIndex = (index + 1) & 0xff;
+      if (asm.filled >= asm.totalNeed) {
+        finishHidMessage(asm.stream, asm.totalNeed);
+      }
+    }
+
+    function loadRegFields() {
+      try {
+        const raw = localStorage.getItem(REG_STORAGE_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (saved && typeof saved.reg === 'string') els.regAddr.value = saved.reg;
+        if (saved && typeof saved.data === 'string') els.regData.value = saved.data;
+      } catch (_) {}
+    }
+
+    function saveRegFields() {
+      try {
+        localStorage.setItem(
+          REG_STORAGE_KEY,
+          JSON.stringify({
+            reg: String(els.regAddr.value || ''),
+            data: String(els.regData.value || ''),
+          }),
+        );
+      } catch (_) {}
+    }
+
+    function parseHexByte(text, label) {
+      const s = String(text || '').trim().replace(/^0x/i, '');
+      if (!/^[0-9a-fA-F]{1,2}$/.test(s)) {
+        throw new Error(label + ' must be 8-bit hex (00~FF)');
+      }
+      return parseInt(s, 16) & 0xff;
+    }
+
+    /**
+     * Reg TX: 0A | Index=00 | 02 A3 | DB | Len=6 | 03 OP 00 00 REG VAL | 03 B3
+     *   OP 0x01=Read (VAL=00), OP 0x02=Write
+     *   (Start/Stop use tag 0xAD/0xAF — must not reuse those here)
+     * Reg RX (0x0B): Data[0]=03 Data[1]=OP Data[4]=Reg Data[5]=Val Data[6]=Ack
+     */
+    function buildRegPacket(op, reg, value) {
+      return new Uint8Array([
+        REG_REPORT_ID,
+        REG_PKT_INDEX,
+        STX0,
+        STX1,
+        REG_CMD,
+        0x00,
+        0x06,
+        0x03,
+        op & 0xff,
+        0x00,
+        0x00,
+        reg & 0xff,
+        value & 0xff,
+        ETX0,
+        ETX1,
+      ]);
+    }
+
+    /** Register R/W only — do not use Start/Stop shotgun sendHidPacket. */
+    async function sendRegPacket(hid, full) {
+      const reportId = full[0];
+      const payload = full.slice(1);
+      try {
+        await hid.sendReport(reportId, payload);
+        logRawPacket(full, 'TX');
+        return true;
+      } catch (err1) {
+        try {
+          await hid.sendReport(0, full);
+          logRawPacket(full, 'TX');
+          return true;
+        } catch (err2) {
+          throw err1 || err2;
+        }
+      }
+    }
+
+    function cancelRegPending(reason) {
+      const pending = state.regPending;
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      state.regPending = null;
+      try {
+        pending.reject(new Error(reason || 'cancelled'));
+      } catch (_) {}
+    }
+
+    function awaitRegResponse(op, reg) {
+      cancelRegPending('superseded');
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          if (state.regPending && state.regPending.timer === timer) {
+            state.regPending = null;
+            reject(new Error('timeout'));
+          }
+        }, REG_TIMEOUT_MS);
+        state.regPending = { op, reg, resolve, reject, timer };
+      });
+    }
+
+    function handleRegResponse(data) {
+      // Data[0]=03, Data[1]=op, Data[4]=reg, Data[5]=val, Data[6]=ack
+      if (!data || data.length < 7) return;
+      if (data[0] !== 0x03) return;
+      const op = data[1];
+      const reg = data[4];
+      const value = data[5];
+      const ack = data[6];
+      const pending = state.regPending;
+      if (!pending) return;
+      if (pending.op !== op || pending.reg !== reg) return;
+      clearTimeout(pending.timer);
+      state.regPending = null;
+      pending.resolve({ op, reg, value, ack });
+    }
+
+    function formatRegByte(n) {
+      return '0x' + (n & 0xff).toString(16).toUpperCase().padStart(2, '0');
+    }
+
+    async function ensureRegDevice() {
+      const d = selectedDevice();
+      if (!d) throw new Error('Select / Connect HID first');
+      if (!d.hid.opened) await d.hid.open();
+      attachInputListener(d.hid);
+      return d;
+    }
+
+    async function writeRegister() {
+      let reg;
+      let value;
+      try {
+        reg = parseHexByte(els.regAddr.value, 'Register');
+        value = parseHexByte(els.regData.value, 'Data');
+      } catch (err) {
+        els.regStatus.textContent = err && err.message ? err.message : String(err);
+        return;
+      }
+
+      els.btnRegRead.disabled = true;
+      els.btnRegWrite.disabled = true;
+      els.regStatus.textContent = 'Writing…';
+      try {
+        const d = await ensureRegDevice();
+        const wait = awaitRegResponse(REG_OP_WRITE, reg);
+        await sendRegPacket(d.hid, buildRegPacket(REG_OP_WRITE, reg, value));
+        const res = await wait;
+        if (res.ack === REG_ACK_OK) {
+          els.regStatus.textContent =
+            'Write OK · Reg ' + formatRegByte(res.reg) + ' = ' + formatRegByte(res.value);
+        } else {
+          els.regStatus.textContent =
+            'Write FAIL · Ack ' + formatRegByte(res.ack) +
+            ' · Reg ' + formatRegByte(res.reg);
+        }
+      } catch (err) {
+        els.regStatus.textContent =
+          'Write failed: ' + (err && err.message ? err.message : err);
+      } finally {
+        updateChrome();
+      }
+    }
+
+    async function readRegister() {
+      let reg;
+      try {
+        reg = parseHexByte(els.regAddr.value, 'Register');
+      } catch (err) {
+        els.regStatus.textContent = err && err.message ? err.message : String(err);
+        return;
+      }
+
+      els.btnRegRead.disabled = true;
+      els.btnRegWrite.disabled = true;
+      els.regStatus.textContent = 'Reading…';
+      try {
+        const d = await ensureRegDevice();
+        const wait = awaitRegResponse(REG_OP_READ, reg);
+        await sendRegPacket(d.hid, buildRegPacket(REG_OP_READ, reg, 0x00));
+        const res = await wait;
+        if (res.ack === REG_ACK_OK) {
+          els.regData.value = res.value.toString(16).toUpperCase().padStart(2, '0');
+          saveRegFields();
+          els.regStatus.textContent =
+            'Read OK · Reg ' + formatRegByte(res.reg) + ' = ' + formatRegByte(res.value);
+        } else {
+          els.regStatus.textContent =
+            'Read FAIL · Ack ' + formatRegByte(res.ack) +
+            ' · Reg ' + formatRegByte(res.reg);
+        }
+      } catch (err) {
+        els.regStatus.textContent =
+          'Read failed: ' + (err && err.message ? err.message : err);
+      } finally {
+        updateChrome();
+      }
+    }
+
+    async function sendHidPacket(hid, full) {
+      const attempts = [];
+
+      attempts.push(async () => {
+        await hid.sendReport(0, full);
+        return 'reportId=0, ' + full.length + ' bytes';
+      });
+
+      attempts.push(async () => {
+        await hid.sendReport(full[0], full.slice(1));
+        return 'reportId=0x' + full[0].toString(16).toUpperCase() + ', ' + (full.length - 1) + ' bytes';
+      });
+
+      const outIds = new Set();
+      for (const c of hid.collections || []) {
+        for (const r of c.outputReports || []) outIds.add(r.reportId);
+        for (const r of c.featureReports || []) outIds.add(r.reportId);
+      }
+      for (const id of outIds) {
+        const rid = id;
+        attempts.push(async () => {
+          await hid.sendReport(rid, full);
+          return 'reportId=' + rid + ' (collection), ' + full.length + ' bytes';
+        });
+        attempts.push(async () => {
+          await hid.sendReport(rid, full.slice(rid === full[0] ? 1 : 0));
+          return 'reportId=' + rid + ' (trimmed)';
+        });
+      }
+
+      attempts.push(async () => {
+        await hid.sendFeatureReport(0, full);
+        return 'featureReport id=0';
+      });
+      attempts.push(async () => {
+        await hid.sendFeatureReport(full[0], full.slice(1));
+        return 'featureReport id=0x' + full[0].toString(16).toUpperCase();
+      });
+
+      let lastErr = null;
+      for (const attempt of attempts) {
+        try {
+          const how = await attempt();
+          logRawPacket(full, 'TX');
+          return how;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error('sendReport failed');
+    }
+
+    async function resetCapture() {
+      await stop();
+      clearCaptureBuffers();
+    }
+
+    els.deviceList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-id]');
+      if (!btn) return;
+      state.selectedId = btn.getAttribute('data-id');
+      renderDevices();
+      await resetCapture();
+    });
+
+    els.btnRun.addEventListener('click', async () => {
+      if (state.running) await stop();
+      else await start();
+    });
+
+    els.btnGrant.addEventListener('click', () => grantDevice());
+    els.btnLogClear.addEventListener('click', () => clearLogView());
+    els.btnRegRead.addEventListener('click', () => readRegister());
+    els.btnRegWrite.addEventListener('click', () => writeRegister());
+    els.regAddr.addEventListener('input', saveRegFields);
+    els.regData.addEventListener('input', saveRegFields);
+    els.regAddr.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') readRegister();
+    });
+    els.regData.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') writeRegister();
+    });
+    loadRegFields();
+
+    function openRaw() {
+      els.rawPopup.classList.add('open');
+      els.rawToggle.checked = true;
+      ensureRawPosition();
+      renderRaw(true);
+    }
+    function closeRaw() {
+      els.rawPopup.classList.remove('open');
+      els.rawToggle.checked = false;
+      state.rawPackets = [];
+      state.rawRendered = 0;
+      els.rawList.innerHTML = '<p class="empty-hint">Waiting for HID reports…</p>';
+    }
+
+    els.rawToggle.addEventListener('change', () => {
+      if (els.rawToggle.checked) openRaw();
+      else closeRaw();
+    });
+    els.rawClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeRaw();
+    });
+
+    bindPopupDrag(els.rawDragHandle, els.rawPopup);
+    bindPopupResize(els.rawResize, els.rawPopup);
+
+    els.sidebarSplitter.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const cur = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-w').trim();
+      const startW = cur ? parseFloat(cur) : defaultSidebarWidth();
+      sideResize.active = true;
+      sideResize.startX = e.clientX;
+      sideResize.startW = startW;
+      els.sidebarSplitter.classList.add('active');
+      document.body.classList.add('resizing-sidebar');
+      els.sidebarSplitter.setPointerCapture(e.pointerId);
+    });
+    els.sidebarSplitter.addEventListener('pointermove', (e) => {
+      if (!sideResize.active) return;
+      state.sidebarUserSet = true;
+      setSidebarWidth(sideResize.startW + (e.clientX - sideResize.startX));
+      drawAll();
+    });
+    function endSideResize(e) {
+      if (!sideResize.active) return;
+      sideResize.active = false;
+      els.sidebarSplitter.classList.remove('active');
+      document.body.classList.remove('resizing-sidebar');
+      try { els.sidebarSplitter.releasePointerCapture(e.pointerId); } catch (_) {}
+      drawAll();
+    }
+    els.sidebarSplitter.addEventListener('pointerup', endSideResize);
+    els.sidebarSplitter.addEventListener('pointercancel', endSideResize);
+
+    function onResizeMove(e) {
+      if (!resize.active || !resize.el) return;
+      const maxW = Math.max(320, window.innerWidth - resize.originLeft - 8);
+      const maxH = Math.max(180, window.innerHeight - resize.originTop - 8);
+      const w = Math.min(Math.max(320, resize.startW + (e.clientX - resize.startX)), maxW);
+      const h = Math.min(Math.max(180, resize.startH + (e.clientY - resize.startY)), maxH);
+      resize.el.style.width = w + 'px';
+      resize.el.style.height = h + 'px';
+      resize.el.style.left = resize.originLeft + 'px';
+      resize.el.style.top = resize.originTop + 'px';
+      resize.el.style.right = 'auto';
+      resize.el.style.bottom = 'auto';
+    }
+
+    function endResize() {
+      if (!resize.active) return;
+      if (resize.el) resize.el.classList.remove('resizing');
+      resize.active = false;
+      resize.el = null;
+      document.body.style.cursor = '';
+    }
+
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', endResize);
+    window.addEventListener('pointercancel', endResize);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeRaw();
+    });
+    window.addEventListener('resize', () => {
+      applyDisplayLayout();
+      drawAll();
+      if (els.rawPopup.classList.contains('open')) ensureRawPosition();
+    });
+
+    if (navigator.hid) {
+      navigator.hid.addEventListener('connect', async (e) => {
+        if (isTargetDevice(e.device)) await refreshDevices();
+      });
+      navigator.hid.addEventListener('disconnect', async (e) => {
+        if (state.openHid === e.device) await stop();
+        await refreshDevices();
+      });
+    }
+
+    applyDisplayLayout();
+    refreshDevices();
+    drawAll();
+  </script>
+</body>
+</html>
