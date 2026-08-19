@@ -1,0 +1,62 @@
+﻿[
+    {
+        "email":  "sseojyun@g2touch.com",
+        "name":  "[HW]서지언"
+    },
+    {
+        "email":  "ydw@g2touch.com",
+        "name":  "[HW]윤동원"
+    },
+    {
+        "email":  "s2choi@g2touch.com",
+        "name":  "[HW]최승섭"
+    },
+    {
+        "email":  "willchoi@g2touch.com",
+        "name":  "[HW]최정민"
+    },
+    {
+        "email":  "felix@g2touch.com",
+        "name":  "[IC]배성호"
+    },
+    {
+        "email":  "jjkim@g2touch.com",
+        "name":  "[SW]김재진"
+    },
+    {
+        "email":  "sksong@g2touch.com",
+        "name":  "[SW]송성근"
+    },
+    {
+        "email":  "recover5@g2touch.com",
+        "name":  "[SW]오유곤"
+    },
+    {
+        "email":  "lsk8809@g2touch.com",
+        "name":  "[SW]이상기"
+    },
+    {
+        "email":  "jaekyu@g2touch.com",
+        "name":  "[SW]정재규"
+    },
+    {
+        "email":  "swcho085@g2touch.com",
+        "name":  "[SW]조성원"
+    },
+    {
+        "email":  "hyunggi91@g2touch.com",
+        "name":  "[SW]진형기"
+    },
+    {
+        "email":  "hongyunkim@g2touch.com",
+        "name":  "[기획]김홍윤"
+    },
+    {
+        "email":  "jwwon@g2touch.com",
+        "name":  "[기획]원지운"
+    },
+    {
+        "email":  "sykim@g2touch.com",
+        "name":  "[영업]김수연"
+    }
+]

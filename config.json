@@ -1,0 +1,14 @@
+﻿{
+    "output_root":  ".",
+    "tasks_dirname":  "tasks",
+    "last_task":  "EB001",
+    "filename_pattern":  "{date}_{subject}",
+    "date_format":  "%Y-%m-%d",
+    "gemini_enabled":  false,
+    "always_on_top":  false,
+    "title_similarity_pct":  80,
+    "tree_expand_saved":  true,
+    "tree_expanded":  {
+
+                      }
+}
